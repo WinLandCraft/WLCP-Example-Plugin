@@ -1,0 +1,1 @@
+Put exactly one winlandcraft-*-plugin-api.jar here. It is compile-only and ignored by Git. Get it from a WinLandCraft build/release. Do not put the main mod JAR here or install the API JAR in Minecraft.

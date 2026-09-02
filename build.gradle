@@ -1,0 +1,29 @@
+plugins { id 'java' }
+group = 'example.winlandcraft'
+version = '1.0.0'
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+// Only the public API is visible to plugin code. Never package it in this JAR.
+def apiFiles = fileTree(dir: 'libs', include: '*-plugin-api.jar')
+dependencies { compileOnly apiFiles }
+tasks.named('compileJava') {
+    doFirst {
+        if (apiFiles.files.size() != 1) throw new GradleException('Put exactly one winlandcraft-*-plugin-api.jar in libs/. See README.md.')
+    }
+}
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+tasks.register('verifyPluginJar') {
+    dependsOn jar
+    doLast {
+        def archive = tasks.jar.archiveFile.get().asFile
+        new java.util.zip.ZipFile(archive).withCloseable { zip ->
+            if (zip.getEntry('fabric.mod.json') == null || zip.getEntry('example/ExamplePlugin.class') == null)
+                throw new GradleException('Plugin entrypoint or metadata is missing')
+            if (zip.entries().toList().any { it.name.startsWith('dev/winlandcraft/') })
+                throw new GradleException('Host or API classes must not be bundled')
+        }
+    }
+}
+check.dependsOn verifyPluginJar
